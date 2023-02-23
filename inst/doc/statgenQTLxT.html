@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Bart-Jan van Rossum" />
+
+<meta name="date" content="2023-02-22" />
+
+<title>Multi-trait GWAS with the statgenQTLxT package</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+<style type="text/css">
+
+div.csl-bib-body { }
+div.csl-entry {
+clear: both;
+}
+.hanging div.csl-entry {
+margin-left:2em;
+text-indent:-2em;
+}
+div.csl-left-margin {
+min-width:2em;
+float:left;
+}
+div.csl-right-inline {
+margin-left:2em;
+padding-left:1em;
+}
+div.csl-indent {
+margin-left: 2em;
+}
+</style>
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Multi-trait GWAS with the statgenQTLxT
+package</h1>
+<h4 class="author">Bart-Jan van Rossum</h4>
+<h4 class="date">2023-02-22</h4>
+
+
+
+<p>The <code>statgenQTLxT</code> package performs multi-trait and
+multi-environment Genome Wide Association Studies (GWAS), following the
+approach of <span class="citation">(<a href="#ref-Zhou2014" role="doc-biblioref">Zhou and Stephens 2014</a>)</span>. It builds on
+the <code>statgenGWAS</code> package (for single trait GWAS) which is
+available from <a href="https://biometris.github.io/statgenGWAS/">CRAN</a>. The package
+uses data structures and plots defined in the <code>statgenGWAS</code>
+package. It is recommended to read the vignette of this package,
+accessible in R via <code>vignette(package = &quot;statgenGWAS&quot;)</code> or
+online at <a href="https://biometris.github.io/statgenGWAS/articles/GWAS.html" class="uri">https://biometris.github.io/statgenGWAS/articles/GWAS.html</a>
+to get a general idea of those.</p>
+<hr />
+<div id="multi-trait-gwas" class="section level1">
+<h1>Multi-Trait GWAS</h1>
+<div id="theoretical-background" class="section level2">
+<h2>Theoretical background</h2>
+<p>Multi-trait GWAS in the <code>statgenQTLxT</code> package estimates
+and tests the effect of a SNP in different trials or on different
+traits, one SNP at a time. Genetic and residual covariances are fitted
+only once, for a model without SNPs. Given balanced data on <span class="math inline">\(n\)</span> genotypes and <span class="math inline">\(p\)</span> traits (or trials) we fit a mixed model
+of the form</p>
+<p><span class="math inline">\(Y = \left(\begin{array}{c} Y_1 \\ \vdots
+\\ Y_p\end{array}\right) = \left(\begin{array}{c} X\gamma_1 \\ \vdots \\
+X\gamma_p\end{array}\right) + \left(\begin{array}{c} x\beta_1 \\ \vdots
+\\ x\beta_p\end{array}\right) + \left(\begin{array}{c} G_1 \\ \vdots \\
+G_p\end{array}\right) + \left(\begin{array}{c} E_1 \\ \vdots \\
+E_p\end{array}\right)\)</span></p>
+<p>where <span class="math inline">\(Y_1\)</span> to <span class="math inline">\(Y_p\)</span> are <span class="math inline">\(n ×
+1\)</span> vectors with the phenotypic values for traits or trials <span class="math inline">\(1, \ldots, p\)</span>. <span class="math inline">\(x\)</span> is the <span class="math inline">\(n ×
+1\)</span> vector of scores for the marker under consideration, and
+<span class="math inline">\(X\)</span> the <span class="math inline">\(n
+× q\)</span> design matrix for the other covariates. By default only a
+trait (environment) specific intercept is included. The vector
+containing the genetic background effects <span class="math inline">\(G_1, \ldots, G_p\)</span> is Gaussian with zero
+mean and covariance <span class="math inline">\(V_g \otimes K\)</span>,
+where <span class="math inline">\(V_g\)</span> is a <span class="math inline">\(p × p\)</span> matrix of genetic (co)variances,
+and <span class="math inline">\(K\)</span> an <span class="math inline">\(n × n\)</span> kinship matrix. Similarly, the
+residual errors (<span class="math inline">\(E_1, \ldots, E_p\)</span>)
+have covariance <span class="math inline">\(V_e \otimes I_n\)</span>,
+for a <span class="math inline">\(p × p\)</span> matrix <span class="math inline">\(V_e\)</span> of residual (co)variances.</p>
+<div id="common" class="section level3">
+<h3>Hypotheses for the SNP-effects</h3>
+<p>For each SNP, the null-hypothesis <span class="math inline">\(\beta_1
+= \dots = \beta_p = 0\)</span> is tested, using the likelihood ratio
+test (LRT) described in <span class="citation">(<a href="#ref-Zhou2014" role="doc-biblioref">Zhou and Stephens 2014</a>)</span>. If
+<code>estCom = TRUE</code>, additional tests for a common effect and for
+QTL-by-trait (QTL × T) or QTL-by-environment (QTL × E) are performed,
+using the parameterization <span class="math inline">\(\beta_j = \alpha
++ \alpha_j (1 \leq j \leq p)\)</span>. As in <span class="citation">(<a href="#ref-Korte2012" role="doc-biblioref">Korte et al.
+2012</a>)</span>, we use likelihood ratio tests, but not restricted to
+the bivariate case. For the common effect, we fit the reduced model
+<span class="math inline">\(\beta_j = \alpha\)</span>, and test if <span class="math inline">\(\alpha = 0\)</span>. For the interactions, we test
+if <span class="math inline">\(\alpha_1 = \dots = \alpha_p =
+0\)</span>.</p>
+</div>
+<div id="vc" class="section level3">
+<h3>Models for the genetic and residual covariance</h3>
+<p><span class="math inline">\(V_g\)</span> and <span class="math inline">\(V_e\)</span> can be provided by the user
+(<code>fitVarComp = FALSE</code>); otherwise one of the following models
+is used, depending on <code>covModel</code>. If
+<code>covModel = &quot;unst&quot;</code>, an unstructured model is assumed, as in
+<span class="citation">(<a href="#ref-Zhou2014" role="doc-biblioref">Zhou and Stephens 2014</a>)</span>: <span class="math inline">\(V_g\)</span> and <span class="math inline">\(V_e\)</span> can be any positive-definite matrix,
+requiring a total of <span class="math inline">\(p(p+1)/2\)</span>
+parameters per matrix. If <code>covModel = &quot;fa&quot;</code>, a
+factor-analytic model is fitted using an EM-algorithm, as in <span class="citation">(<a href="#ref-Millet2016" role="doc-biblioref">Millet
+et al. 2016</a>)</span>. <span class="math inline">\(V_g\)</span> and
+<span class="math inline">\(V_e\)</span> are assumed to be of the form
+<span class="math inline">\(W W^t + D\)</span>, where <span class="math inline">\(W\)</span> is a <span class="math inline">\(p ×
+m\)</span> matrix of factor loadings and <span class="math inline">\(D\)</span> a diagonal matrix with trait or
+environment specific values. <span class="math inline">\(m\)</span> is
+the order of the model, and the arguments <code>mG</code> and
+<code>mE</code> specify the order used for respectively <span class="math inline">\(V_g\)</span> and <span class="math inline">\(V_e\)</span>. <code>maxIter</code> sets the
+maximum number of iterations used in the EM-algorithm. Finally, if
+<code>covModel = &quot;pw&quot;</code>, <span class="math inline">\(V_g\)</span>
+and <span class="math inline">\(V_e\)</span> are estimated ‘pairwise’,
+as in <span class="citation">(<a href="#ref-Furlotte2015" role="doc-biblioref">Furlotte and Eskin 2015</a>)</span>. Looping over
+pairs of traits or trials <span class="math inline">\(1 \leq j &lt; k
+\leq p\)</span>, <span class="math inline">\(V_g[j,k] =
+V_g[k,j]\)</span> and <span class="math inline">\(V_e[j,k] =
+V_e[k,j]\)</span> are estimated assuming a bivariate mixed model. The
+diagonals of <span class="math inline">\(V_g\)</span> and <span class="math inline">\(V_e\)</span> are fitted assuming univariate mixed
+models. If the resulting <span class="math inline">\(V_g\)</span> or
+<span class="math inline">\(V_e\)</span> is not positive-definite, they
+are replaced by the nearest positive-definite matrix. In case
+<code>covModel = &quot;unst&quot;</code> or <code>&quot;pw&quot;</code> it is possible to
+assume that <span class="math inline">\(V_e\)</span> is diagonal
+(<code>VeDiag = TRUE</code>).</p>
+<hr />
+</div>
+</div>
+</div>
+<div id="the-class-gdata" class="section level1">
+<h1>The class <code>gData</code></h1>
+<p>Data for analysis on genomic data comes from different sources and is
+stored in one data object of class <strong>gData</strong>
+(<strong>g</strong>enomic <strong>Data</strong>) for convenience. A
+<code>gData</code> object will contain all data needed for performing
+analyses, so the first thing to do when using the
+<code>statgenQTLxT</code> package is creating a <code>gData</code>
+object; see the <code>statgenGWAS</code> package for more details. A
+<code>gData</code> object contains the following components:</p>
+<ul>
+<li>Marker map, a data.frame describing the physical positions of the
+markers on the chromosomes,</li>
+<li>Marker matrix, a numerical matrix containing the genotyping,</li>
+<li>Phenotypic data, either a single data.frame or a list of data.frames
+containing the phenotypic data,</li>
+<li>Kinship matrix, a matrix describing the genetic relatedness between
+the different genotypes,</li>
+<li>Further covariates that can be used in the analyses.</li>
+</ul>
+<p>In our examples below we will show how a <code>gData</code> object is
+created.</p>
+<hr />
+</div>
+<div id="worked-example-1-multiple-traits-in-one-trial" class="section level1">
+<h1>Worked example 1: multiple traits in one trial</h1>
+<p>As examples of the functionality of the package two worked examples
+are provided using maize data from the European Union project DROPS. The
+data is available from <a href="https://doi.org/10.15454/IASSTN" class="uri">https://doi.org/10.15454/IASSTN</a> <span class="citation">(<a href="#ref-Millet2019" role="doc-biblioref">Millet
+et al. 2019</a>)</span> and the relevant data sets are included as
+data.frames in the <code>statgenGWAS</code> package. We will first show
+how to load the data and create a <code>gData</code> object. Users
+already familiar with the <code>statgenGwas</code> packages might want
+to skip this part and go straight to <a href="#mtg"><strong>Running
+Multi-trait GWAS</strong></a> section.</p>
+<p><code>dropsMarkers</code> contains the coded marker information for
+41,722 SNPs and 246 genotypes. <code>dropsMap</code> contains
+information about the positions of those SNPs on the B73 reference
+genome V2. <code>dropsPheno</code> contains data for the genotypic means
+(Best Linear Unbiased Estimators, BLUEs) for a subset of ten
+experiments, with one value per experiment per genotype, for eight
+traits. For a more detailed description of the contents of the data see
+<code>help(dropsData, package = statgenGWAS)</code>.</p>
+<div id="create-gdata-object" class="section level2">
+<h2><strong>Create gData object</strong></h2>
+<p>The first step is to create a <strong><code>gData</code></strong>
+object from the raw data that can be used for the GWAS analysis. For
+this the raw data has to be converted to a suitable format for a
+<strong><code>gData</code></strong> object, see
+<code>help(createGData, package = statgenGWAS)</code> and the
+<code>statgenGWAS</code> vignette for more details.</p>
+<p>When running a multi-trait or multi-environment GWAS, all traits used
+in the analysis should be in the same <code>data.frame</code>, with
+genotype as first column and the phenotypic data in subsequent columns.
+In case of a multi-trait analysis the phenotypic columns contain
+different traits, measured in one environment, while for a
+multi-environment the columns correspond to the different environments
+(same trait). In both cases the <code>data.frame</code> may only contain
+phenotypic data. Additional covariates need to be stored in
+<code>covar</code>.</p>
+<p>Below are some examples of what these <code>data.frames</code> should
+look like.</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">genotype</th>
+<th align="left">Trait1</th>
+<th align="left">Trait2</th>
+<th align="left">Trait3</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">G1</td>
+<td align="left">0.3</td>
+<td align="left">17</td>
+<td align="left">277</td>
+</tr>
+<tr class="even">
+<td align="left">G2</td>
+<td align="left">0.4</td>
+<td align="left">19</td>
+<td align="left">408</td>
+</tr>
+<tr class="odd">
+<td align="left">G3</td>
+<td align="left">0.5</td>
+<td align="left">17</td>
+<td align="left">206</td>
+</tr>
+<tr class="even">
+<td align="left">G4</td>
+<td align="left">0.7</td>
+<td align="left">13</td>
+<td align="left">359</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr class="header">
+<th align="left">genotype</th>
+<th align="left">Trait1-Trial1</th>
+<th align="left">Trait1-Trial2</th>
+<th align="left">Trait1-Trial3</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">G1</td>
+<td align="left">0.3</td>
+<td align="left">0.7</td>
+<td align="left">0.5</td>
+</tr>
+<tr class="even">
+<td align="left">G2</td>
+<td align="left">0.4</td>
+<td align="left">0.9</td>
+<td align="left">0.1</td>
+</tr>
+<tr class="odd">
+<td align="left">G3</td>
+<td align="left">0.5</td>
+<td align="left">0.8</td>
+<td align="left">0.2</td>
+</tr>
+<tr class="even">
+<td align="left">G4</td>
+<td align="left">0.7</td>
+<td align="left">0.5</td>
+<td align="left">0.4</td>
+</tr>
+</tbody>
+</table>
+<p>In our first example, we want to perform multi-trait GWAS for one of
+the DROPS environments. <code>dropsPheno</code> contains genotypic means
+for six traits in ten trials. To run a multi-trait GWAS analysis for
+each of the ten trials, the data has to be added as a <code>list</code>
+of ten <code>data.frames</code>. Recall that these
+<code>data.frames</code> should have “genotype” as their first column
+and may only contain traits after that. Other columns need to be
+dropped.</p>
+<p>The code below creates this <code>list</code> of
+<code>data.frames</code> from <code>dropsPheno</code>.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(dropsPheno, <span class="at">package =</span> <span class="st">&quot;statgenGWAS&quot;</span>)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="do">## Convert phenotypic data to a list.</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(dropsPheno)[<span class="dv">1</span>] <span class="ot">&lt;-</span> <span class="st">&quot;genotype&quot;</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>dropsPheno <span class="ot">&lt;-</span> dropsPheno[<span class="fu">c</span>(<span class="st">&quot;Experiment&quot;</span>, <span class="st">&quot;genotype&quot;</span>, <span class="st">&quot;grain.yield&quot;</span>, <span class="st">&quot;grain.number&quot;</span>,</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>                           <span class="st">&quot;anthesis&quot;</span>, <span class="st">&quot;silking&quot;</span>, <span class="st">&quot;plant.height&quot;</span>, <span class="st">&quot;ear.height&quot;</span>)]</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="do">## Split data by experiment.</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>dropsPhenoList <span class="ot">&lt;-</span> <span class="fu">split</span>(<span class="at">x =</span> dropsPheno, <span class="at">f =</span> dropsPheno[[<span class="st">&quot;Experiment&quot;</span>]])</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="do">## Remove Experiment column.</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="do">## phenotypic data should consist only of genotype and traits.</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>dropsPhenoList <span class="ot">&lt;-</span> <span class="fu">lapply</span>(<span class="at">X =</span> dropsPhenoList, <span class="at">FUN =</span> <span class="st">`</span><span class="at">[</span><span class="st">`</span>, <span class="sc">-</span><span class="dv">1</span>)</span></code></pre></div>
+<p>If the phenotypic data consists of only one trial/experiment, it can
+be added as a single <code>data.frame</code> without first converting it
+to a <code>list</code>. In that case <code>createGData</code> will
+convert the input to a <code>list</code> with one item.</p>
+<p>Now a <code>gData</code> object containing map, marker information,
+and phenotypes can be created. Kinship matrix and covariates may be
+added later on.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Load marker data.</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(<span class="st">&quot;dropsMarkers&quot;</span>, <span class="at">package =</span> <span class="st">&quot;statgenGWAS&quot;</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="do">## Add genotypes as row names of dropsMarkers and drop Ind column.</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="fu">rownames</span>(dropsMarkers) <span class="ot">&lt;-</span> dropsMarkers[[<span class="st">&quot;Ind&quot;</span>]]</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>dropsMarkers <span class="ot">&lt;-</span> dropsMarkers[, <span class="sc">-</span><span class="dv">1</span>]</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="do">## Load genetic map.</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(<span class="st">&quot;dropsMap&quot;</span>, <span class="at">package =</span> <span class="st">&quot;statgenGWAS&quot;</span>)</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="do">## Add genotypes as row names of dropsMap.</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="fu">rownames</span>(dropsMap) <span class="ot">&lt;-</span> dropsMap[[<span class="st">&quot;SNP.names&quot;</span>]]</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="do">## Rename Chromosome and Position columns.</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(dropsMap)[<span class="dv">2</span><span class="sc">:</span><span class="dv">3</span>] <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;chr&quot;</span>, <span class="st">&quot;pos&quot;</span>)</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="do">## Create a gData object containing map, marker and phenotypic information.</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>gDataDrops <span class="ot">&lt;-</span> statgenGWAS<span class="sc">::</span><span class="fu">createGData</span>(<span class="at">geno =</span> dropsMarkers,</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>                                       <span class="at">map =</span> dropsMap, </span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>                                       <span class="at">pheno =</span> dropsPhenoList)</span></code></pre></div>
+<p>To get an idea of the contents of the data a summary of the
+<code>gData</code> object can be made. This will give an overview of the
+content of the map and markers and also print a summary per trait per
+trial. Since there are ten trials and six traits in
+<code>gDataDrops</code> we restrict the output to one trial, using the
+<code>trials</code> argument of the summary function.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Summarize gDataDrops.</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(gDataDrops, <span class="at">trials =</span> <span class="st">&quot;Mur13W&quot;</span>)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; map</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  Number of markers: 41722 </span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  Number of chromosomes: 10 </span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; markers</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  Number of markers: 41722 </span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  Number of genotypes: 246 </span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  Content:</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0 1 2 NA </span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0.28 0.01 0.71 0 </span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; pheno</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  Number of trials: 1 </span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  Mur13W:</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;      Number of traits: 6 </span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;      Number of genotypes: 246 </span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;         grain.yield grain.number anthesis silking plant.height ear.height</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Min.            3.3         1348       56      59          222        102</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1st Qu.         6.3         2641       61      64          251        125</span></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Median          7.5         2965       63      66          258        133</span></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Mean            7.4         2986       63      66          259        133</span></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3rd Qu.         8.4         3359       66      68          266        141</span></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Max.           11.4         4510       71      74          294        172</span></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; NA&#39;s            0.0            0        0       0            0          0</span></span></code></pre></div>
+</div>
+<div id="recoding-and-cleaning-of-markers" class="section level2">
+<h2><strong>Recoding and cleaning of markers</strong></h2>
+<p>Marker data has to be numerical and without missing values in order
+to do GWAS analysis. This can be achieved using the
+<code>codeMarkers()</code> function, which can also perform imputation
+of missing markers. The marker data available for the DROPS project has
+already been converted from A/T/C/G to 0/1/2. We still use the
+<code>codeMarkers()</code> function to further clean the markers, in
+this case by removing the duplicate SNPs.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Set seed.</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1234</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="do">## Remove duplicate SNPs from gDataDrops.</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>gDataDropsDedup <span class="ot">&lt;-</span> statgenGWAS<span class="sc">::</span><span class="fu">codeMarkers</span>(gDataDrops, </span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>                                            <span class="at">impute =</span> <span class="cn">FALSE</span>, </span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>                                            <span class="at">verbose =</span> <span class="cn">TRUE</span>) </span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Input contains 41722 SNPs for 246 genotypes.</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 0 genotypes removed because proportion of missing values larger than or equal to 1.</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 0 SNPs removed because proportion of missing values larger than or equal to 1.</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 5098 duplicate SNPs removed.</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Output contains 36624 SNPs for 246 genotypes.</span></span></code></pre></div>
+<p>Note that duplicate SNPs are removed at random. To get reproducible
+results make sure to set a seed.</p>
+<p>To demonstrate the options of the <code>codeMarkers()</code>
+function, see <code>help(codeMarkers, package = statgenGWAS)</code> and
+the <code>statgenGWAS</code> vignette for more details.</p>
+</div>
+<div id="mtg" class="section level2">
+<h2><strong>Running Multi-trait GWAS</strong></h2>
+<p>The cleaned <code>gData</code> object can be used for performing
+multi-trait GWAS analysis. In this example the trial <em>Mur13W</em> is
+used to demonstrate the options of the <code>runMultiTraitGwas()</code>
+function, for a subset of five traits. As in <span class="citation">(<a href="#ref-millet2016" role="doc-biblioref"><strong>millet2016?</strong></a>)</span> we choose
+a factor analytic model for the genetic and residual covariance.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Run multi-trait GWAS for 5 traits in trial Mur13W.</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>GWASDrops <span class="ot">&lt;-</span> <span class="fu">runMultiTraitGwas</span>(<span class="at">gData =</span> gDataDropsDedup, </span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>                               <span class="at">traits =</span> <span class="fu">c</span>(<span class="st">&quot;grain.yield&quot;</span>,<span class="st">&quot;grain.number&quot;</span>,</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>                                          <span class="st">&quot;anthesis&quot;</span>, <span class="st">&quot;silking&quot;</span> ,<span class="st">&quot;plant.height&quot;</span>),</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>                               <span class="at">trials =</span> <span class="st">&quot;Mur13W&quot;</span>, </span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>                               <span class="at">covModel =</span> <span class="st">&quot;fa&quot;</span>)</span></code></pre></div>
+<p>The output of the <code>runMultiTraitGwas()</code> function is an
+object of class <code>GWAS</code>. This is a list consisting of five
+elements described below.<br />
+</p>
+<ol style="list-style-type: decimal">
+<li><strong>GWAResult</strong>: a list of <code>data.tables</code>, one
+for each trial for which the analysis was run. Each
+<code>data.table</code> has the following columns:</li>
+</ol>
+<table>
+<colgroup>
+<col width="14%" />
+<col width="85%" />
+</colgroup>
+<tbody>
+<tr class="odd">
+<td align="left">snp</td>
+<td align="left">SNP name</td>
+</tr>
+<tr class="even">
+<td align="left">trait</td>
+<td align="left">trait name</td>
+</tr>
+<tr class="odd">
+<td align="left">chr</td>
+<td align="left">chromosome on which the SNP is located</td>
+</tr>
+<tr class="even">
+<td align="left">pos</td>
+<td align="left">position of the SNP on the chromosome</td>
+</tr>
+<tr class="odd">
+<td align="left">pValue</td>
+<td align="left">P-value for the SNP</td>
+</tr>
+<tr class="even">
+<td align="left">LOD</td>
+<td align="left">LOD score for the SNP, defined as <span class="math inline">\(-\log_{10}(pValue)\)</span></td>
+</tr>
+<tr class="odd">
+<td align="left">effect</td>
+<td align="left">effect of the SNP on the trait value</td>
+</tr>
+<tr class="even">
+<td align="left">effectSe</td>
+<td align="left">standard error of the effect of the SNP on the trait
+value</td>
+</tr>
+<tr class="odd">
+<td align="left">allFreq</td>
+<td align="left">allele frequency of the SNP</td>
+</tr>
+</tbody>
+</table>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(GWASDrops<span class="sc">$</span>GWAResult<span class="sc">$</span>Mur13W)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;              snp    trait chr    pos pValue   LOD effect effectSe allFreq</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1:         SYN83 anthesis   1   3498  0.928 0.033  -0.14     0.19    0.60</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2: PZE-101000060 anthesis   1 157104  0.187 0.728   0.49     0.21    0.72</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3: PZE-101000088 anthesis   1 238347  0.079 1.100  -0.65     0.25    0.84</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 4: PZE-101000083 anthesis   1 239225  0.506 0.296  -0.16     0.18    0.58</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 5: PZE-101000108 anthesis   1 255850  0.656 0.183   0.17     0.33    0.90</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 6: PZE-101000111 anthesis   1 263938  0.467 0.331  -0.41     0.24    0.83</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(GWASDrops<span class="sc">$</span>GWAResult<span class="sc">$</span>Mur13W[GWASDrops<span class="sc">$</span>GWAResult<span class="sc">$</span>Mur13W<span class="sc">$</span>trait <span class="sc">==</span> <span class="st">&quot;grain.yield&quot;</span>, ])</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;              snp       trait chr    pos pValue   LOD effect effectSe allFreq</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1:         SYN83 grain.yield   1   3498  0.928 0.033 -0.058    0.096    0.60</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2: PZE-101000060 grain.yield   1 157104  0.187 0.728  0.037    0.102    0.72</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3: PZE-101000088 grain.yield   1 238347  0.079 1.100  0.018    0.124    0.84</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 4: PZE-101000083 grain.yield   1 239225  0.506 0.296 -0.108    0.091    0.58</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 5: PZE-101000108 grain.yield   1 255850  0.656 0.183 -0.091    0.163    0.90</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 6: PZE-101000111 grain.yield   1 263938  0.467 0.331 -0.028    0.119    0.83</span></span></code></pre></div>
+<p>The <code>data.tables</code> above contain the results for traits
+anthesis and grain.yield respectively. While the column effect is trait
+specific, the p-Value is for the global null-hypothesis (<span class="math inline">\(\beta_1 = \dots = \beta_p = 0\)</span>) described
+above; these P-values are repeated for each trait.</p>
+<ol start="2" style="list-style-type: decimal">
+<li><strong>signSnp</strong>: a list of <code>data.tables</code>, one
+for each trial for which the analysis was run, containing the
+significant SNPs. Optionally also the SNPs close to the significant SNPs
+are included in the <code>data.table</code>. See <a href="#sign"><strong>Significance thresholds</strong></a> for more
+information on how to do this. The data.tables in signSnp consist of the
+same columns as those in GWAResult described above. Two extra columns
+are added:</li>
+</ol>
+<table>
+<colgroup>
+<col width="16%" />
+<col width="84%" />
+</colgroup>
+<tbody>
+<tr class="odd">
+<td align="left">snpStatus</td>
+<td align="left">either “significant SNP” or “within … of a significant
+SNP”</td>
+</tr>
+<tr class="even">
+<td align="left">propSnpVar</td>
+<td align="left">proportion of the variance explained by the SNP,
+computed as <span class="math inline">\(\beta_{\textrm{SNP}}^2 *
+var(\textrm{SNP}) / var(\textrm{pheno})\)</span></td>
+</tr>
+</tbody>
+</table>
+<p>In this case there are no significant SNPs:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>GWASDrops<span class="sc">$</span>signSnp<span class="sc">$</span>Mur13W</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; NULL</span></span></code></pre></div>
+<ol start="3" style="list-style-type: decimal">
+<li><p><strong>kinship</strong>: the kinship matrix (or matrices) used
+in the GWAS analysis. This can either be the user provided kinship
+matrix or the kinship matrix computed when running the
+<code>runMultiTraitGwas()</code> function.</p></li>
+<li><p><strong>thr</strong>: a list of thresholds, one for each trial
+for which the analysis was run, used for determining significant
+SNPs.</p></li>
+<li><p><strong>GWASInfo</strong>: additional information on the
+analysis, e.g. the call and the type of threshold used.</p></li>
+</ol>
+<div id="gwas-summary" class="section level3">
+<h3>GWAS Summary</h3>
+<p>For a quick overview of the results, e.g. the number of significant
+SNPs, use the summary function.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Create summary of GWASDrops for the trait grain number.</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(GWASDrops, <span class="at">traits =</span> <span class="st">&quot;grain.number&quot;</span>)</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Mur13W:</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  Traits analysed: anthesis, grain.number, grain.yield, plant.height, silking </span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  Data are available for 36624 SNPs.</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0 of them were not analyzed because their minor allele frequency is below 0.01 </span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  GLSMethod: single </span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  Trait: grain.number </span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;      LOD-threshold: 5.9 </span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;      No significant SNPs found. </span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;      No genomic control correction was applied</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;      Genomic control inflation-factor: 1.7</span></span></code></pre></div>
+</div>
+<div id="gwas-plots" class="section level3">
+<h3>GWAS Plots</h3>
+<p>The <code>plot</code> function can be used to visualize the results
+in GWASDrops, with a QQ-plot, Manhattan plot or QTL-plot. More details
+for each <code>plotType</code> are available in the
+<code>statgenGWAS</code> vignette.</p>
+<div id="qq-plots" class="section level4">
+<h4>QQ plots</h4>
+<p>A QQ-plot of the observed against the expected <span class="math inline">\(-\log_{10}(p)\)</span> values can be made by
+setting <code>plotType = &quot;qq&quot;</code>. Most of the SNPs are expected to
+have no effect, resulting in P-values uniformly distributed on <span class="math inline">\([0,1]\)</span>, and leading to the identity
+function (<span class="math inline">\(y=x\)</span>) on the <span class="math inline">\(-\log_{10}(p)\)</span> scale. As in the plot
+below, deviations from this line should only occur on the right side of
+the plot, for a small number of SNPs with an effect on the phenotype
+(and possibly SNPs in LD). There is <strong>inflation</strong> if the
+observed <span class="math inline">\(-\log_{10}(p)\)</span> values are
+always above the line <span class="math inline">\(y=x\)</span>, and
+(less common) <strong>deflation</strong> if they are always below this
+line. A QQ-plot therefore gives a first impression of the quality of the
+GWAS model: if for example <span class="math inline">\(-\log_{10}(p)\)</span> values are consistently too
+large (inflation), the correction for genetic relatedness may not be
+adequate. In this case it may be of interest to correct the P-values for
+inflation, using the <code>genomicControl</code> argument in the
+<code>runMultiTraitGwas()</code>.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Plot a qq plot of GWAS Drops.</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(GWASDrops, <span class="at">plotType =</span> <span class="st">&quot;qq&quot;</span>)</span></code></pre></div>
+<p><img src="data:image/png;base64,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" /><!-- --></p>
+</div>
+<div id="manhattan-plots" class="section level4">
+<h4>Manhattan plots</h4>
+<p>A Manhattan plot is made by setting
+<code>plotType = &quot;manhattan&quot;</code>. Significant SNPs are marked in
+red.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Plot a manhattan plot of GWAS Drops.</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(GWASDrops, <span class="at">plotType =</span> <span class="st">&quot;manhattan&quot;</span>)</span></code></pre></div>
+<p><img src="data:image/png;base64,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" /><!-- --></p>
+<p>More options linked with <code>plotType = &quot;manhattan&quot;</code> are
+described in the <code>statgenGWAS</code> vignette.</p>
+</div>
+<div id="qtl-plots" class="section level4">
+<h4>QTL plots</h4>
+<p>A qtl plot can be made by setting <code>plotType = &quot;qtl&quot;</code>. In
+this plot the significant SNPs are marked by circles at their genomic
+positions, with diameter proportional to the estimated effect size; for
+an example see <span class="citation">Millet et al. (<a href="#ref-Millet2016" role="doc-biblioref">2016</a>)</span>. Typically,
+this is done for multiple traits or environments, with the genomic
+position on the x-axis, which are displayed horizontally above each
+other and can thus be compared.</p>
+<p>Since the traits are measured on a different scale, the effect
+estimates cannot be compared directly. For better comparison, one can
+set <code>normalize = TRUE</code>, which divides the estimates by the
+standard deviation of the phenotype.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Plot a qtl plot of GWAS Drops for Mur13W.</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="do">## Set significance threshold to 5 and normalize effect estimates.</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(GWASDrops, <span class="at">plotType =</span> <span class="st">&quot;qtl&quot;</span>, <span class="at">yThr =</span> <span class="dv">5</span>, <span class="at">normalize =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
+<p><img src="data:image/png;base64,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" /><!-- --></p>
+<p>Other arguments can be used to plot a subset of the chromosomes
+(<code>chr</code>) and directly export the plot to .pptx
+(<code>exportPptx = TRUE</code> and specify <code>pptxName</code>). Note
+that the <a href="https://ardata-fr.github.io/officeverse/">officer</a>
+package is required for this. A full list of arguments can be found by
+running <code>help(plot.GWAS)</code>.</p>
+</div>
+</div>
+</div>
+<div id="kinship-matrices" class="section level2">
+<h2>Kinship matrices</h2>
+<p>The <code>runMultiTraitGwas()</code> function has an argument
+<code>kinshipMethod</code>, which defines the kinship matrix used for
+association mapping. Kinship matrices can be computed directly using the
+<code>kinship</code> function or within the
+<code>runMultiTraitGwas function</code>. There are five options: (1)
+using the covariance between the scaled SNP-scores
+(<code>kinshipMethod = &quot;astle&quot;</code>, the default; see e.g. equation
+(2.2) in <span class="citation">Astle and Balding (<a href="#ref-Astle2009" role="doc-biblioref">2009</a>)</span>) (2)
+Identity by State (<code>kinshipMethod = &quot;IBS&quot;</code>; see e.g. equation
+(2.3) in <span class="citation">Astle and Balding (<a href="#ref-Astle2009" role="doc-biblioref">2009</a>)</span>) (3) using
+the formula by <span class="citation">VanRaden (<a href="#ref-VanRaden2008" role="doc-biblioref">2008</a>)</span>
+(<code>kinshipMethod = &quot;vanRaden&quot;</code>) (4) using an identity matrix
+(<code>kinshipMethod = &quot;identity&quot;</code>), corresponding to no kinship
+correction (5) User-defined, in which case the argument <code>kin</code>
+needs to be specified.</p>
+<p>By default, the same kinship matrix is used for testing all SNPs
+(<code>GLSMethod = &quot;single&quot;</code>). When
+<code>GLSMethod = &quot;multi&quot;</code>, the kinship matrix is
+chromosome-specific. In this case, the function fits variance components
+and computes effect-estimates and P-values for each chromosome in turn,
+using the kinship matrix for that chromosome (i.e. using all SNPs that
+are <strong>not</strong> on this chromosome). Each chromosome-specific
+kinship matrix is computed using the method specified by the argument
+<code>kinshipMethod</code>. As shown by <span class="citation">Rincent
+et al. (<a href="#ref-Rincent2014" role="doc-biblioref">2014</a>)</span>, this can give a considerable
+improvement in power.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Run multi-trait GWAS for trial &#39;Mur13W&#39;.</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="do">## Use chromosome specific kinship matrices computed using method of van Raden.</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>GWASDropsChrSpec <span class="ot">&lt;-</span> <span class="fu">runMultiTraitGwas</span>(<span class="at">gData =</span> gDataDropsDedup, </span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>                                      <span class="at">trials =</span> <span class="st">&quot;Mur13W&quot;</span>,</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>                                      <span class="at">GLSMethod =</span> <span class="st">&quot;multi&quot;</span>,</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>                                      <span class="at">kinshipMethod =</span> <span class="st">&quot;vanRaden&quot;</span>,</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>                                      <span class="at">covModel =</span> <span class="st">&quot;fa&quot;</span>)</span></code></pre></div>
+</div>
+</div>
+<div id="worked-example-2-one-trait-measured-in-multiple-trials" class="section level1">
+<h1>Worked example 2: one trait measured in multiple trials</h1>
+<div id="create-gdata-object-1" class="section level2">
+<h2><strong>Create gData object</strong></h2>
+<p>In this example, we will focus on one trait, grain yield, in all
+trials. <code>dropsPheno</code> contains genotypic means for 10 trials.
+To be able to run a GWAS analysis with one trait measured in all trials,
+the data has to be reshaped and added as a single data.frame with
+“genotype” as first column and traits after that.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Reshape phenotypic data to data.frame in wide format containing only grain.yield.</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>phenoDat <span class="ot">&lt;-</span> <span class="fu">reshape</span>(dropsPheno[, <span class="fu">c</span>(<span class="st">&quot;Experiment&quot;</span>, <span class="st">&quot;genotype&quot;</span>, <span class="st">&quot;grain.yield&quot;</span>)], </span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>                    <span class="at">timevar =</span> <span class="st">&quot;Experiment&quot;</span>, </span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>                    <span class="at">idvar =</span> <span class="st">&quot;genotype&quot;</span>, </span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>                    <span class="at">direction =</span> <span class="st">&quot;wide&quot;</span>, </span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>                    <span class="at">v.names =</span> <span class="st">&quot;grain.yield&quot;</span>)</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="do">## Rename columns to trial name only.</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(phenoDat)[<span class="dv">2</span><span class="sc">:</span><span class="fu">ncol</span>(phenoDat)] <span class="ot">&lt;-</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">gsub</span>(<span class="at">pattern =</span> <span class="st">&quot;grain.yield.&quot;</span>, <span class="at">replacement =</span> <span class="st">&quot;&quot;</span>,</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>       <span class="at">x =</span> <span class="fu">colnames</span>(phenoDat)[<span class="dv">2</span><span class="sc">:</span><span class="fu">ncol</span>(phenoDat)])</span></code></pre></div>
+<p>Now we create a <code>gData</code> object containing map marker
+information and phenotypes.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Create a gData object containing map, marker and phenotypic information.</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>gDataDropsxE <span class="ot">&lt;-</span> statgenGWAS<span class="sc">::</span><span class="fu">createGData</span>(<span class="at">geno =</span> dropsMarkers,</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>                                         <span class="at">map =</span> dropsMap, </span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>                                         <span class="at">pheno =</span> phenoDat)</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(gDataDropsxE)</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; map</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  Number of markers: 41722 </span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  Number of chromosomes: 10 </span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; markers</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  Number of markers: 41722 </span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  Number of genotypes: 246 </span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  Content:</span></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0 1 2 NA </span></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0.28 0.01 0.71 0 </span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; pheno</span></span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  Number of trials: 1 </span></span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  phenoDat:</span></span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;      Number of traits: 10 </span></span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;      Number of genotypes: 246 </span></span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;         Kar12W Gai12W Kar13W Ner12R Mar13R Mur13R Cra12R Cam12R Kar13R Mur13W</span></span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Min.       5.4    7.5    4.1    2.1    3.8    2.1  0.088   0.38    5.6    3.3</span></span>
+<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1st Qu.    8.8   10.4    7.0    4.0    7.0    5.8  0.891   1.33    8.7    6.3</span></span>
+<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Median     9.9   11.2    7.9    4.7    7.7    6.9  1.381   1.87    9.8    7.5</span></span>
+<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Mean       9.7   11.2    8.0    4.7    7.8    6.9  1.492   1.98    9.9    7.4</span></span>
+<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3rd Qu.   10.7   12.0    9.1    5.3    8.6    7.8  1.971   2.59   11.0    8.4</span></span>
+<span id="cb14-30"><a href="#cb14-30" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Max.      13.1   14.3   12.7    7.1   11.5   10.6  4.979   4.90   13.8   11.4</span></span>
+<span id="cb14-31"><a href="#cb14-31" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; NA&#39;s       0.0    0.0    0.0    0.0    0.0    0.0  0.000   0.00    0.0    0.0</span></span></code></pre></div>
+</div>
+<div id="recoding-and-cleaning-of-markers-1" class="section level2">
+<h2><strong>Recoding and cleaning of markers</strong></h2>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Remove duplicate SNPs from gDataDrops.</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>gDataDropsDedupxE <span class="ot">&lt;-</span> statgenGWAS<span class="sc">::</span><span class="fu">codeMarkers</span>(gDataDropsxE, </span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>                                              <span class="at">impute =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>                                              <span class="at">verbose =</span> <span class="cn">TRUE</span>) </span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Input contains 41722 SNPs for 246 genotypes.</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 0 genotypes removed because proportion of missing values larger than or equal to 1.</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 0 SNPs removed because proportion of missing values larger than or equal to 1.</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 5098 duplicate SNPs removed.</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Output contains 36624 SNPs for 246 genotypes.</span></span></code></pre></div>
+</div>
+<div id="multi-trial-gwas" class="section level2">
+<h2><strong>Multi-trial GWAS</strong></h2>
+<p>Similar to the first example we run a multi-trial GWAs using a factor
+analytic model.</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Run multi-trial GWAS for one trait in all trials.</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>GWASDropsxE <span class="ot">&lt;-</span> <span class="fu">runMultiTraitGwas</span>(<span class="at">gData =</span> gDataDropsDedupxE, </span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">covModel =</span> <span class="st">&quot;fa&quot;</span>)</span></code></pre></div>
+<p>Among the significant SNPs we find the large QTL on chromosome 6
+reported in <span class="citation">Millet et al. (<a href="#ref-Millet2016" role="doc-biblioref">2016</a>)</span>.</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(GWASDropsxE<span class="sc">$</span>signSnp<span class="sc">$</span>pheno, <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;              snp  trait chr      pos  pValue  LOD effect effectSe allFreq       snpStatus propSnpVar</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1:      SYN25281 Kar12W   6 18646369 1.6e-07  6.8   0.23    0.100    0.79 significant SNP      0.017</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2: PZE-106021363 Kar12W   6 18846283 7.6e-11 10.1   0.28    0.091    0.70 significant SNP      0.034</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3: PZE-106021410 Kar12W   6 18990291 2.5e-11 10.6   0.30    0.091    0.70 significant SNP      0.037</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 4: PZE-106021419 Kar12W   6 18991091 1.5e-12 11.8   0.25    0.092    0.74 significant SNP      0.026</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 5: PZE-106021420 Kar12W   6 18991117 2.3e-10  9.6   0.27    0.091    0.70 significant SNP      0.032</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 6: PZE-106021424 Kar12W   6 18991481 4.3e-12 11.4   0.24    0.092    0.74 significant SNP      0.022</span></span></code></pre></div>
+<div id="gwas-summary-1" class="section level3">
+<h3>GWAS Summary</h3>
+<p>For a quick overview of the results, e.g. the number of significant
+SNPs, we again use the summary function. We restrict the output to two
+trials using the <code>traits</code> argument.</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(GWASDropsxE, <span class="at">traits =</span> <span class="fu">c</span>(<span class="st">&quot;Mur13W&quot;</span>, <span class="st">&quot;Kar12W&quot;</span>))</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; phenoDat:</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  Traits analysed: Cam12R, Cra12R, Gai12W, Kar12W, Kar13R, Kar13W, Mar13R, Mur13R, Mur13W, Ner12R </span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  Data are available for 36624 SNPs.</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0 of them were not analyzed because their minor allele frequency is below 0.01 </span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  GLSMethod: single </span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  Trait: Mur13W </span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;      LOD-threshold: 5.9 </span></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;      Number of significant SNPs: 8 </span></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;      Smallest p-value among the significant SNPs: 1.5e-12 </span></span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;      Largest p-value among the significant SNPs: 4e-07 (LOD-score: 6.4)</span></span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;      No genomic control correction was applied</span></span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;      Genomic control inflation-factor: 0.94 </span></span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  Trait: Kar12W </span></span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;      LOD-threshold: 5.9 </span></span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;      Number of significant SNPs: 8 </span></span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;      Smallest p-value among the significant SNPs: 1.5e-12 </span></span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;      Largest p-value among the significant SNPs: 4e-07 (LOD-score: 6.4)</span></span>
+<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;      No genomic control correction was applied</span></span>
+<span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;      Genomic control inflation-factor: 0.94</span></span></code></pre></div>
+</div>
+<div id="gwas-plots-1" class="section level3">
+<h3>GWAS Plots</h3>
+<p>As in the first example we use the <code>plot.GWAS()</code> function
+to visualize the results in <code>GWASDropsxE</code>, with a QQ-plot,
+Manhattan plot or QTL-plot.</p>
+<div id="qq-plots-1" class="section level4">
+<h4>QQ plots</h4>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(GWASDropsxE, <span class="at">plotType =</span> <span class="st">&quot;qq&quot;</span>)</span></code></pre></div>
+<p><img src="data:image/png;base64,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" /><!-- --></p>
+</div>
+<div id="manhattan-plots-1" class="section level4">
+<h4>Manhattan plots</h4>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(GWASDropsxE, <span class="at">plotType =</span> <span class="st">&quot;manhattan&quot;</span>)</span></code></pre></div>
+<p><img src="data:image/png;base64,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" /><!-- --></p>
+</div>
+<div id="qtl-plots-1" class="section level4">
+<h4>QTL plots</h4>
+<p>The trait is measured with the same scale across trials so the effect
+estimates can be compared directly (one can set
+<code>normalize = FALSE</code>).</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Set significance threshold to 6 and do not normalize effect estimates.</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(GWASDropsxE, <span class="at">plotType =</span> <span class="st">&quot;qtl&quot;</span>, <span class="at">yThr =</span> <span class="dv">6</span>, <span class="at">normalize =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
+<p><img src="data:image/png;base64,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" /><!-- --></p>
+<hr />
+</div>
+</div>
+</div>
+</div>
+<div id="opts" class="section level1">
+<h1>Further options</h1>
+<p>The <code>runMultiTraitGwas()</code> function has many more arguments
+that can be specified. In this section similar arguments are grouped and
+explained with examples on how to use them.</p>
+<div id="sign" class="section level2">
+<h2>Significance thresholds</h2>
+<p>The threshold for selecting significant SNPs in a GWAS analysis is
+computed by default using Bonferroni correction, with an alpha of 0.05.
+The alpha can be modified setting the option <em>alpha</em> when calling
+<code>runMultiTraitGwas()</code>. Two other threshold types can be used:
+a fixed threshold (<code>thrType = &quot;fixed&quot;</code>) specifying the <span class="math inline">\(-\log_{10}(p)\)</span> (<code>LODThr</code>) value
+of the threshold, or a threshold that defines the n SNPs with the
+highest <span class="math inline">\(-\log_{10}(p)\)</span> scores as
+significant SNPs. Set <code>thrType = &quot;small&quot;</code> together with
+<code>nSnpLOD = n</code> to do this. In the following example, we define
+all SNPs with <span class="math inline">\(p &lt; 10^{-4}\)</span> as
+significant SNPs.</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Run multi-trait GWAS for Mur13W.</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="do">## Use a fixed significance threshold of 4.</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>GWASDropsFixThr <span class="ot">&lt;-</span> <span class="fu">runMultiTraitGwas</span>(<span class="at">gData =</span> gDataDropsDedup,</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">trials =</span> <span class="st">&quot;Mur13W&quot;</span>, </span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">covModel =</span> <span class="st">&quot;fa&quot;</span>,</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">thrType =</span> <span class="st">&quot;fixed&quot;</span>,</span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">LODThr =</span> <span class="dv">4</span>)</span></code></pre></div>
+<p><strong>Controlling false discovery rate</strong></p>
+<p>A final option for selecting significant SNPs is by setting
+<code>thrType = &quot;fdr&quot;</code>. When doing so the significant SNPs won’t
+be selected by computing a genome wide threshold, but by trying to
+control the rate of false discoveries as in <span class="citation">Brzyski et al. (<a href="#ref-Brzyski2016" role="doc-biblioref">2016</a>)</span>.</p>
+<p>First, a list is defined containing all SNPs with a P-value below
+<code>pThr</code>, default 0.05. Then clusters of SNPs are created using
+a two step iterative process in which SNPs with the lowest P-values are
+selected as cluster representatives. This SNP and all SNPs that have a
+correlation with this SNP of <span class="math inline">\(\rho\)</span>
+or higher (specified by the function argument <code>rho</code>, default
+0.4) will form a cluster. The selected SNPs are removed from the list
+and the procedure is repeated until no SNPs are left. At the end of this
+step, one has a list of clusters, with corresponding vector of P-values
+of the cluster representatives. Finally, to determine the number of
+significant clusters, the first cluster is determined for which the
+P-value of the cluster representative is larger than <span class="math inline">\(cluster_{number} * \alpha / m\)</span>, where
+<span class="math inline">\(m\)</span> is the number of SNPs and <span class="math inline">\(\alpha\)</span> can be specified by the
+corresponding function argument. All previous clusters are selected as
+significant.</p>
+</div>
+<div id="variance-components" class="section level2">
+<h2>Variance components</h2>
+<p>There are three ways to compute the variance components used in the
+GWAS analysis. These can be specified by setting the argument
+<code>covModel</code>. See <a href="#vc"><strong>Models for the genetic
+and residual covariance</strong></a> for a description of the
+options.</p>
+<p><strong>Note that <code>covModel = unst</code> can only be used for
+less than 10 traits or trials. It is not recommended to use it for six
+to nine trials for computational reasons.</strong></p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Run multi-trait GWAS for for Mur13W.</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="do">## Use a factor analytic model for computing the variance components.</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>GWASDropsFA <span class="ot">&lt;-</span> <span class="fu">runMultiTraitGwas</span>(<span class="at">gData =</span> gDataDropsDedup,</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">trials =</span> <span class="st">&quot;Mur13W&quot;</span>,</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">covModel =</span> <span class="st">&quot;fa&quot;</span>)</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a><span class="do">## Rerun the analysis, using the variance components computed in the </span></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a><span class="do">## previous model as inputs.</span></span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>GWASDropsFA2 <span class="ot">&lt;-</span> <span class="fu">runMultiTraitGwas</span>(<span class="at">gData =</span> gDataDropsDedup,</span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>                                  <span class="at">trials =</span> <span class="st">&quot;Mur13W&quot;</span>,</span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>                                  <span class="at">fitVarComp  =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>                                  <span class="at">Vg =</span> GWASDropsFA<span class="sc">$</span>GWASInfo<span class="sc">$</span>varComp<span class="sc">$</span>Vg,</span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a>                                  <span class="at">Ve =</span> GWASDropsFA<span class="sc">$</span>GWASInfo<span class="sc">$</span>varComp<span class="sc">$</span>Ve)</span></code></pre></div>
+<p><strong>Parallel computing</strong></p>
+<p>To improve performance when using a pairwise variance component
+model, it is possible to use parallel computing. To do this, a parallel
+back-end has to be specified by the user, e.g. by using
+<code>registerDoParallel</code> from the <code>doParallel</code> package
+(see the example below). In addition, in the
+<code>runMultiTraitGwas()</code> function the argument
+<code>parallel</code> has to be set to <code>TRUE</code>. With these
+settings the computations are done in parallel per pair of traits.</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Register parallel back-end with 2 cores.</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>doParallel<span class="sc">::</span><span class="fu">registerDoParallel</span>(<span class="at">cores =</span> <span class="dv">2</span>)</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="do">## Run multi-trait GWAS for one trait in all trials.</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>GWASDropsxEPar <span class="ot">&lt;-</span> <span class="fu">runMultiTraitGwas</span>(<span class="at">gData =</span> gDataDropsDedupxE,</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">covModel =</span> <span class="st">&quot;pw&quot;</span>,</span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">parallel =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
+</div>
+<div id="covariates" class="section level2">
+<h2>Covariates</h2>
+<p>Covariates can be included as extra fixed effects in the GWAS model.
+The <code>runMultiTraitGwas()</code> function distinguishes between
+‘usual’ covariates and SNP-covariates. The former could be design
+factors such as block, or other traits one wants to condition on. In the
+latter case, the covariate(s) are one or more of the markers contained
+in the genotypic data. SNP-covariates can be set with the argument
+<code>snpCov</code>, which should be a vector of marker names.
+Similarly, other covariates should be specified using the argument
+<code>covar</code>, containing a vector of covariate names. The
+<code>gData</code> object should contain these covariates in
+<code>gData$covar</code>.</p>
+<p>In case SNP-covariates are used, GWAS for all the other SNPs is
+performed with the the SNP-covariates as extra fixed effect; also the
+null model used to estimate the variance components includes these
+effects. For each SNP in SNP-covariates, a P-value is obtained using the
+same F-test and null model to estimate the variance components, but with
+only all other SNPs (if any) in SNP-covariates as fixed effects.</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Run multi-trait GWAS for Mur13W.</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="do">## Use PZE-106021410, the most significant SNP, as SNP covariate.</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>GWASDropsSnpCov <span class="ot">&lt;-</span> <span class="fu">runMultiTraitGwas</span>(<span class="at">gData =</span> gDataDropsDedup,</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">trials =</span> <span class="st">&quot;Mur13W&quot;</span>,</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">snpCov =</span> <span class="st">&quot;PZE-106021410&quot;</span>,</span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">covModel =</span> <span class="st">&quot;fa&quot;</span>)</span></code></pre></div>
+</div>
+<div id="minor-allele-frequency" class="section level2">
+<h2>Minor Allele Frequency</h2>
+<p>It is recommended to remove SNPs with a low minor allele frequency
+(MAF) from the data before starting a GWAS analysis. However it is also
+possible to do so in the analysis itself. The difference between these
+approaches is that <code>codeMarkers()</code> removes the SNPs, whereas
+<code>runMultiTraitGwas()</code> excludes them from the analysis but
+leaves them in the output (with results set to <code>NA</code>). In the
+latter case it will still be possible to see the allele frequency of the
+SNP.<br />
+By default all SNPs with a MAF lower than 0.01 are excluded from the
+analysis. This can be controlled by the argument <code>MAF</code>.
+Setting MAF to 0 will still exclude duplicate SNPs since duplicates
+cause problems when fitting the underlying models.</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Run multi-trait GWAS for Mur13W.</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="do">## Only include SNPs that have a MAF of 0.05 or higher.</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>GWASDropsMAF <span class="ot">&lt;-</span> <span class="fu">runMultiTraitGwas</span>(<span class="at">gData =</span> gDataDropsDedup,</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>                                  <span class="at">trials =</span> <span class="st">&quot;Mur13W&quot;</span>,</span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>                                  <span class="at">covModel =</span> <span class="st">&quot;fa&quot;</span>,</span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>                                  <span class="at">MAF =</span> <span class="fl">0.05</span>)</span></code></pre></div>
+</div>
+<div id="estimation-of-common-snp-effects-and-qtle-effects." class="section level2">
+<h2>Estimation of common SNP effects and QTL×E effects.</h2>
+<p>Besides a normal SNP-effect model, it is possible to fit a common
+SNP-effect model as well (see <a href="#common"><strong>Hypotheses for
+the SNP-effects</strong></a>). When doing so, in addition to the
+SNP-effect, also the common SNP-effect and the QTL×E effect and
+corresponding standard errors and P-values are returned. These are
+included as extra columns in the GWAResult <code>data.table</code> in
+the output of the function.</p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Run multi-trait GWAS for Mur13W.</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="do">## Fit an additional common sNP effect model.</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>GWASDropsCommon <span class="ot">&lt;-</span> <span class="fu">runMultiTraitGwas</span>(<span class="at">gData =</span> gDataDropsDedup,</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">trials =</span> <span class="st">&quot;Mur13W&quot;</span>,</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">covModel =</span> <span class="st">&quot;fa&quot;</span>,</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">estCom =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(GWASDropsCommon<span class="sc">$</span>GWAResult<span class="sc">$</span>Mur13W)</span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;              snp    trait chr    pos pValue  LOD effect effectSe allFreq pValCom effsCom effsComSe pValQtlE</span></span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1:         SYN83 anthesis   1   3498  0.954 0.02  -0.13     0.20    0.60   0.283  -0.048     0.044     0.99</span></span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2: PZE-101000060 anthesis   1 157104  0.173 0.76   0.51     0.21    0.72   0.023   0.107     0.047     0.57</span></span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3: PZE-101000088 anthesis   1 238347  0.091 1.04  -0.68     0.25    0.84   0.055  -0.111     0.058     0.20</span></span>
+<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 4: PZE-101000083 anthesis   1 239225  0.597 0.22  -0.15     0.19    0.58   0.111  -0.067     0.042     0.84</span></span>
+<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 5: PZE-101000108 anthesis   1 255850  0.510 0.29   0.18     0.34    0.90   0.641  -0.037     0.079     0.41</span></span>
+<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 6: PZE-101000111 anthesis   1 263938  0.623 0.21  -0.41     0.24    0.83   0.104  -0.089     0.055     0.88</span></span></code></pre></div>
+<p>The SNPs with a significant QTLxE effect come from the same regions
+as the SNPs in supplementary table 6 in <span class="citation">Millet et
+al. (<a href="#ref-Millet2016" role="doc-biblioref">2016</a>)</span>,
+who however used a different SNP set. Another difference is that here we
+explicitly test for QTLxE within the GWAS, whereas <span class="citation">Millet et al. (<a href="#ref-Millet2016" role="doc-biblioref">2016</a>)</span> regressed SNP effects on
+environmental covariates.</p>
+<hr />
+</div>
+<div id="references" class="section level2 unnumbered">
+<h2 class="unnumbered">References</h2>
+<div id="refs" class="references csl-bib-body hanging-indent">
+<div id="ref-Astle2009" class="csl-entry">
+Astle, William, and David J. Balding. 2009. <span>“Population Structure
+and Cryptic Relatedness in Genetic Association Studies.”</span>
+<em>Statistical Science</em> 24 (4): 451–71. <a href="https://doi.org/10.1214/09-sts307">https://doi.org/10.1214/09-sts307</a>.
+</div>
+<div id="ref-Brzyski2016" class="csl-entry">
+Brzyski, Damian, Christine B. Peterson, Piotr Sobczyk, Emmanuel J.
+Candès, Malgorzata Bogdan, and Chiara Sabatti. 2016. <span>“Controlling
+the Rate of <span>GWAS</span> False Discoveries.”</span>
+<em>Genetics</em> 205 (1): 61–75. <a href="https://doi.org/10.1534/genetics.116.193987">https://doi.org/10.1534/genetics.116.193987</a>.
+</div>
+<div id="ref-Furlotte2015" class="csl-entry">
+Furlotte, N. A., and E. Eskin. 2015. <span>“Efficient Multiple-Trait
+Association and Estimation of Genetic Correlation Using the
+Matrix-Variate Linear Mixed Model.”</span> <em>Genetics</em> 200 (1):
+59–68. <a href="https://doi.org/10.1534/genetics.114.171447">https://doi.org/10.1534/genetics.114.171447</a>.
+</div>
+<div id="ref-Korte2012" class="csl-entry">
+Korte, Arthur, Bjarni J Vilhjálmsson, Vincent Segura, Alexander Platt,
+Quan Long, and Magnus Nordborg. 2012. <span>“A Mixed-Model Approach for
+Genome-Wide Association Studies of Correlated Traits in Structured
+Populations.”</span> <em>Nature Genetics</em> 44 (9): 1066–71. <a href="https://doi.org/10.1038/ng.2376">https://doi.org/10.1038/ng.2376</a>.
+</div>
+<div id="ref-Millet2019" class="csl-entry">
+Millet, Emilie J., Cyril Pommier, Mélanie Buy, Axel Nagel, Willem
+Kruijer, Therese Welz-Bolduan, Jeremy Lopez, et al. 2019. <span>“A
+Multi-Site Experiment in a Network of European Fields for Assessing the
+Maize Yield Response to Environmental Scenarios.”</span> Portail Data
+Inra. <a href="https://doi.org/10.15454/IASSTN">https://doi.org/10.15454/IASSTN</a>.
+</div>
+<div id="ref-Millet2016" class="csl-entry">
+Millet, Emilie J., Claude Welcker, Willem Kruijer, Sandra Negro,
+Stephane Nicolas, Sebastien Praud, Nicolas Ranc, et al. 2016.
+<span>“Genome-Wide Analysis of Yield in Europe: Allelic Effects as
+Functions of Drought and Heat Scenarios.”</span> <em>Plant
+Physiology</em>, July, pp.00621.2016. <a href="https://doi.org/10.1104/pp.16.00621">https://doi.org/10.1104/pp.16.00621</a>.
+</div>
+<div id="ref-Rincent2014" class="csl-entry">
+Rincent, Renaud, Laurence Moreau, Hervé Monod, Estelle Kuhn, Albrecht E.
+Melchinger, Rosa A. Malvar, Jesus Moreno-Gonzalez, et al. 2014.
+<span>“Recovering Power in Association Mapping Panels with Variable
+Levels of Linkage Disequilibrium.”</span> <em>Genetics</em> 197 (1):
+375–87. <a href="https://doi.org/10.1534/genetics.113.159731">https://doi.org/10.1534/genetics.113.159731</a>.
+</div>
+<div id="ref-VanRaden2008" class="csl-entry">
+VanRaden, P. M. 2008. <span>“Efficient Methods to Compute Genomic
+Predictions.”</span> <em>Journal of Dairy Science</em> 91 (11): 4414–23.
+<a href="https://doi.org/10.3168/jds.2007-0980">https://doi.org/10.3168/jds.2007-0980</a>.
+</div>
+<div id="ref-Zhou2014" class="csl-entry">
+Zhou, Xiang, and Matthew Stephens. 2014. <span>“Efficient Multivariate
+Linear Mixed Model Algorithms for Genome-Wide Association
+Studies.”</span> <em>Nature Methods</em> 11 (4): 407–9. <a href="https://doi.org/10.1038/nmeth.2848">https://doi.org/10.1038/nmeth.2848</a>.
+</div>
+</div>
+</div>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
