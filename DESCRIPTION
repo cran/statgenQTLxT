@@ -1,8 +1,8 @@
 Package: statgenQTLxT
 Type: Package
 Title: Multi-Trait and Multi-Trial Genome Wide Association Studies
-Version: 1.0.0
-Date: 2023-02-22
+Version: 1.0.1
+Date: 2023-04-03
 Authors@R: c(person(given = "Bart-Jan", 
                     family = "van Rossum", 
                     email = "bart-jan.vanrossum@wur.nl", 
@@ -61,7 +61,7 @@ VignetteBuilder: knitr
 LinkingTo: Rcpp, RcppArmadillo
 LazyData: true
 NeedsCompilation: yes
-Packaged: 2023-02-22 15:48:38 UTC; rossu027
+Packaged: 2023-04-04 07:43:50 UTC; rossu027
 Author: Bart-Jan van Rossum [aut, cre]
     (<https://orcid.org/0000-0002-8673-2514>),
   Willem Kruijer [aut] (<https://orcid.org/0000-0001-7179-1733>),
@@ -75,4 +75,4 @@ Author: Bart-Jan van Rossum [aut, cre]
   Choazhi Zheng [ctb] (<https://orcid.org/0000-0001-6030-3933>)
 Maintainer: Bart-Jan van Rossum <bart-jan.vanrossum@wur.nl>
 Repository: CRAN
-Date/Publication: 2023-02-23 09:40:03 UTC
+Date/Publication: 2023-04-04 08:00:02 UTC
