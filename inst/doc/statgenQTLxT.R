@@ -142,53 +142,53 @@ plot(GWASDropsxE, plotType = "manhattan")
 plot(GWASDropsxE, plotType = "qtl", yThr = 6, normalize = FALSE)
 
 ## ----mtgSNPFixThr, eval=FALSE-------------------------------------------------------------------------------
-#  ## Run multi-trait GWAS for Mur13W.
-#  ## Use a fixed significance threshold of 4.
-#  GWASDropsFixThr <- runMultiTraitGwas(gData = gDataDropsDedup,
-#                                       trials = "Mur13W",
-#                                       covModel = "fa",
-#                                       thrType = "fixed",
-#                                       LODThr = 4)
+# ## Run multi-trait GWAS for Mur13W.
+# ## Use a fixed significance threshold of 4.
+# GWASDropsFixThr <- runMultiTraitGwas(gData = gDataDropsDedup,
+#                                      trials = "Mur13W",
+#                                      covModel = "fa",
+#                                      thrType = "fixed",
+#                                      LODThr = 4)
 
 ## ----mtgSNPNR, eval=FALSE-----------------------------------------------------------------------------------
-#  ## Run multi-trait GWAS for for Mur13W.
-#  ## Use a factor analytic model for computing the variance components.
-#  GWASDropsFA <- runMultiTraitGwas(gData = gDataDropsDedup,
+# ## Run multi-trait GWAS for for Mur13W.
+# ## Use a factor analytic model for computing the variance components.
+# GWASDropsFA <- runMultiTraitGwas(gData = gDataDropsDedup,
+#                                  trials = "Mur13W",
+#                                  covModel = "fa")
+# 
+# ## Rerun the analysis, using the variance components computed in the
+# ## previous model as inputs.
+# GWASDropsFA2 <- runMultiTraitGwas(gData = gDataDropsDedup,
 #                                   trials = "Mur13W",
-#                                   covModel = "fa")
-#  
-#  ## Rerun the analysis, using the variance components computed in the
-#  ## previous model as inputs.
-#  GWASDropsFA2 <- runMultiTraitGwas(gData = gDataDropsDedup,
-#                                    trials = "Mur13W",
-#                                    fitVarComp  = FALSE,
-#                                    Vg = GWASDropsFA$GWASInfo$varComp$Vg,
-#                                    Ve = GWASDropsFA$GWASInfo$varComp$Ve)
+#                                   fitVarComp  = FALSE,
+#                                   Vg = GWASDropsFA$GWASInfo$varComp$Vg,
+#                                   Ve = GWASDropsFA$GWASInfo$varComp$Ve)
 
 ## ----mtgPar, eval = FALSE-----------------------------------------------------------------------------------
-#  ## Register parallel back-end with 2 cores.
-#  doParallel::registerDoParallel(cores = 2)
-#  
-#  ## Run multi-trait GWAS for one trait in all trials.
-#  GWASDropsxEPar <- runMultiTraitGwas(gData = gDataDropsDedupxE,
-#                                      covModel = "pw",
-#                                      parallel = TRUE)
+# ## Register parallel back-end with 2 cores.
+# doParallel::registerDoParallel(cores = 2)
+# 
+# ## Run multi-trait GWAS for one trait in all trials.
+# GWASDropsxEPar <- runMultiTraitGwas(gData = gDataDropsDedupxE,
+#                                     covModel = "pw",
+#                                     parallel = TRUE)
 
 ## ----mtgSNPCovar, eval=FALSE--------------------------------------------------------------------------------
-#  ## Run multi-trait GWAS for Mur13W.
-#  ## Use PZE-106021410, the most significant SNP, as SNP covariate.
-#  GWASDropsSnpCov <- runMultiTraitGwas(gData = gDataDropsDedup,
-#                                       trials = "Mur13W",
-#                                       snpCov = "PZE-106021410",
-#                                       covModel = "fa")
+# ## Run multi-trait GWAS for Mur13W.
+# ## Use PZE-106021410, the most significant SNP, as SNP covariate.
+# GWASDropsSnpCov <- runMultiTraitGwas(gData = gDataDropsDedup,
+#                                      trials = "Mur13W",
+#                                      snpCov = "PZE-106021410",
+#                                      covModel = "fa")
 
 ## ----mtgMAF, eval=FALSE-------------------------------------------------------------------------------------
-#  ## Run multi-trait GWAS for Mur13W.
-#  ## Only include SNPs that have a MAF of 0.05 or higher.
-#  GWASDropsMAF <- runMultiTraitGwas(gData = gDataDropsDedup,
-#                                    trials = "Mur13W",
-#                                    covModel = "fa",
-#                                    MAF = 0.05)
+# ## Run multi-trait GWAS for Mur13W.
+# ## Only include SNPs that have a MAF of 0.05 or higher.
+# GWASDropsMAF <- runMultiTraitGwas(gData = gDataDropsDedup,
+#                                   trials = "Mur13W",
+#                                   covModel = "fa",
+#                                   MAF = 0.05)
 
 ## ----mtgCommon----------------------------------------------------------------------------------------------
 ## Run multi-trait GWAS for Mur13W.
